@@ -1,7 +1,8 @@
--- canyon 0.4.0 by paramat
--- For latest stable Minetest and back to 0.4.8
--- Depends default
--- License WTFPL
+-- canyon 0.4.1
+-- fresh water range 2
+-- "nolight" replaces set_lighting
+-- 2D perlinmap size z=1
+-- create noise objects only once
 
 -- Parameters
 
@@ -50,6 +51,19 @@ local np_factor = {
 
 local depran = MAXDEP - MINDEP
 local noiran = TRIVERH - TRIVERL
+dofile(minetest.get_modpath("canyon").."/nodes.lua")
+
+-- Set mapgen parameters
+
+minetest.register_on_mapgen_init(function(mgparams)
+	minetest.set_mapgen_params({flags="nolight"})
+end)
+
+-- Initialize noise objects to nil
+
+local nobj_river = nil
+local nobj_depth = nil
+local nobj_factor = nil
 
 -- On generated function
 
@@ -77,15 +91,22 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local c_destone = minetest.get_content_id("default:desert_stone")
 	local c_sand = minetest.get_content_id("default:sand")
 
+	local c_freshwater = minetest.get_content_id("canyon:freshwater")
+
 	local sidelen = x1 - x0 + 1
 	local emerlen = sidelen + 32
-	local chulens = {x=sidelen, y=sidelen, z=sidelen}
+	local chulens = {x=sidelen, y=sidelen, z=1}
 	local minposxz = {x=x0, y=z0}
 
-	local nvals_river = minetest.get_perlin_map(np_river, chulens):get2dMap_flat(minposxz)
-	local nvals_depth = minetest.get_perlin_map(np_depth, chulens):get2dMap_flat(minposxz)
-	local nvals_factor = minetest.get_perlin_map(np_factor, chulens):get2dMap_flat(minposxz)
-		local nixz = 1
+	nobj_river = nobj_river or minetest.get_perlin_map(np_river, chulens)
+	nobj_depth = nobj_depth or minetest.get_perlin_map(np_depth, chulens)
+	nobj_factor = nobj_factor or minetest.get_perlin_map(np_factor, chulens)
+
+	local nvals_river = nobj_river:get2dMap_flat(minposxz)
+	local nvals_depth = nobj_depth:get2dMap_flat(minposxz)
+	local nvals_factor = nobj_factor:get2dMap_flat(minposxz)
+
+	local nixz = 1
 	for z = z0, z1 do
 	for x = x0, x1 do
 		local n_river = nvals_river[nixz]
@@ -130,14 +151,14 @@ minetest.register_on_generated(function(minp, maxp, seed)
 				vi = vi + emerlen
 			end
 			-- Excavate canyon, add sand if below seabed or airgap
-			-- add water up to varying height, dig surface
+			-- add water up to varying height
 			local vi = area:index(x, yexbot, z)
 			for y = yexbot, ysurf do
 				if y <= yexbot + 2 and y <= yseabed
 				and y <= watris + 2 then
 					data[vi] = c_sand
 				elseif y <= watris + 1 then
-					data[vi] = c_water
+					data[vi] = c_freshwater
 				else
 					data[vi] = c_air
 				end
@@ -149,7 +170,6 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	end
 
 	vm:set_data(data)
-	vm:set_lighting({day=0, night=0})
 	vm:calc_lighting()
 	vm:write_to_map(data)
 	vm:update_liquids()
