@@ -1,9 +1,3 @@
--- canyon 0.4.1
--- fresh water range 2
--- "nolight" replaces set_lighting
--- 2D perlinmap size z=1
--- create noise objects only once
-
 -- Parameters
 
 -- Water factor is proportion of water surface level to removed stone surface level
@@ -19,7 +13,7 @@ local TRIVERH = 0.06
 local np_river = {
 	offset = 0,
 	scale = 1,
-	spread = {x=384, y=384, z=384},
+	spread = {x = 384, y = 384, z = 384},
 	seed = 5192098,
 	octaves = 5,
 	persist = 0.6
@@ -30,7 +24,7 @@ local np_river = {
 local np_depth = {
 	offset = 0,
 	scale = 1,
-	spread = {x=192, y=192, z=192},
+	spread = {x = 192, y = 192, z = 192},
 	seed = 924,
 	octaves = 4,
 	persist = 0.5
@@ -41,29 +35,30 @@ local np_depth = {
 local np_factor = {
 	offset = 0,
 	scale = 1,
-	spread = {x=512, y=512, z=512},
+	spread = {x = 512, y = 512, z = 512},
 	seed = 13050,
 	octaves = 2,
 	persist = 0.4
 }
 
+
 -- Stuff
 
 local depran = MAXDEP - MINDEP
 local noiran = TRIVERH - TRIVERL
+
+
+-- Do files
+
 dofile(minetest.get_modpath("canyon").."/nodes.lua")
 
--- Set mapgen parameters
-
-minetest.register_on_mapgen_init(function(mgparams)
-	minetest.set_mapgen_params({flags="nolight"})
-end)
 
 -- Initialize noise objects to nil
 
 local nobj_river = nil
 local nobj_depth = nil
 local nobj_factor = nil
+
 
 -- On generated function
 
@@ -78,10 +73,9 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	local y1 = maxp.y
 	local z0 = minp.z
 	local z1 = maxp.z
-	print ("[canyon] chunk minp ("..x0.." "..y0.." "..z0..")")
 
 	local vm, emin, emax = minetest.get_mapgen_object("voxelmanip")
-	local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
+	local area = VoxelArea:new{MinEdge = emin, MaxEdge = emax}
 	local data = vm:get_data()
 
 	local c_air = minetest.get_content_id("air")
@@ -95,8 +89,8 @@ minetest.register_on_generated(function(minp, maxp, seed)
 
 	local sidelen = x1 - x0 + 1
 	local emerlen = sidelen + 32
-	local chulens = {x=sidelen, y=sidelen, z=1}
-	local minposxz = {x=x0, y=z0}
+	local chulens = {x = sidelen, y = sidelen, z = 1}
+	local minposxz = {x = x0, y = z0}
 
 	nobj_river = nobj_river or minetest.get_perlin_map(np_river, chulens)
 	nobj_depth = nobj_depth or minetest.get_perlin_map(np_depth, chulens)
@@ -170,11 +164,11 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	end
 
 	vm:set_data(data)
+	vm:set_lighting({day = 0, night = 0})
 	vm:calc_lighting()
 	vm:write_to_map(data)
 	vm:update_liquids()
 
 	local chugent = math.ceil((os.clock() - t0) * 1000)
-	print ("[canyon] "..chugent.." ms")
+	print ("[canyon] " .. chugent .. " ms")
 end)
-
